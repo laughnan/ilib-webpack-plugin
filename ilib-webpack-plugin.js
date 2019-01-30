@@ -25,7 +25,7 @@ var ilib;
 var Locale;
 var Utils;
 var LocaleMatcher;
-var PLUGIN_NAME = 'ilib-webpack-plugin';
+var PLUGIN_NAME = 'IlibDataPlugin';
 
 var localeData = new Set();
 
