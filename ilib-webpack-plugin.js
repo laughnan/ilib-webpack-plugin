@@ -25,7 +25,7 @@ var ilib;
 var Locale;
 var Utils;
 var LocaleMatcher;
-var PLUGIN_NAME = 'IlibDataPlugin';
+var DATA_PLUGIN_NAME = 'IlibDataPlugin';
 
 var localeData = new Set();
 
@@ -448,53 +448,44 @@ function IlibDataPlugin(options) {
     this.name = "IlibWebpackPlugin";
 }
 
+function tryToEmitLocaleData(compliation) {
+    try {
+        var sources = emitLocaleData(compilation, this.options);
+
+        // Now update the in-memory modules with these sources because it doesn't
+        // reread the files on disk that we just wrote out.
+        modules.forEach(function(module) {
+            if (sources[module.resource]) {
+                module._source._value = '"use strict";' + sources[module.resource];
+            }
+        });
+    } catch (e) {
+        console.log("ilib-webpack-plugin: " + e.toString());
+        throw e;
+    }
+};
+
 IlibDataPlugin.prototype.apply = function(compiler) {
     // Webpack 4
     if (compiler.hooks) {
-        compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+        compiler.hooks.compilation.tap(DATA_PLUGIN_NAME, function(compliation) {
             compilation.ilibWebpackPlugin = this; // make sure the ilib webpack loaders can find this plugin
 
-            compilation.hooks.finishModules.tap(PLUGIN_NAME, function(modules) {
+            compilation.hooks.finishModules.tap(DATA_PLUGIN_NAME, function(modules) {
                 if (localeData.size > 0) {
-                    try {
-                        var sources = emitLocaleData(compilation, this.options);
-
-                        // Now update the in-memory modules with these sources because it doesn't
-                        // reread the files on disk that we just wrote out.
-                        modules.forEach(function(module) {
-                            if (sources[module.resource]) {
-                                module._source._value = '"use strict";' + sources[module.resource];
-                            }
-                        });
-                    } catch (e) {
-                        console.log("ilib-webpack-plugin: " + e.toString());
-                        throw e;
-                    }
+                    tryToEmitLocaleData(compilation);
                 } else if (this.options.debug) {
                     console.log("ilib-webpack-plugin: not writing data: locale data is not dirty or locale data size is zero");
                 }
             }.bind(this));
-         });
+         }.bind(this));
     } else {
         compiler.plugin('compilation', function(compilation, callback) {
             compilation.ilibWebpackPlugin = this; // make sure the ilib webpack loaders can find this plugin
 
             compilation.plugin('finish-modules', function(modules) {
                 if (localeData.size > 0) {
-                    try {
-                        var sources = emitLocaleData(compilation, this.options);
-
-                        // Now update the in-memory modules with these sources because it doesn't
-                        // reread the files on disk that we just wrote out.
-                        modules.forEach(function(module) {
-                            if (sources[module.resource]) {
-                                module._source._value = '"use strict";' + sources[module.resource];
-                            }
-                        });
-                    } catch (e) {
-                        console.log("ilib-webpack-plugin: " + e.toString());
-                        throw e;
-                    }
+                    tryToEmitLocaleData(compilation);
                 } else if (this.options.debug) {
                     console.log("ilib-webpack-plugin: not writing data: locale data is not dirty or locale data size is zero");
                 }
